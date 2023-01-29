@@ -1,0 +1,1695 @@
+---
+title: 'Data Wrangling Assessment Task 3: Dataset challenge'
+author: "Thaddeus Lee, S3933533"
+subtitle: null
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+  word_document: default
+---
+
+
+
+## Setup 
+
+Insert and load the packages you need to produce the report here:
+```{r echo=TRUE, warning=FALSE}
+
+# This is a chunk where you can load the packages required for producing the report
+library(lubridate)
+library(magrittr) 
+library(dplyr) # For Wrangling Data
+library(tidyr) # For Reading and Writing Data.
+library(outliers)
+library(tidyverse)
+library(deducorrect) 
+library(deductive)
+library(validate)
+library(Hmisc)
+library(MVN)
+library(readr)
+library(openxlsx)
+library(tinytex)
+library(stringr)
+
+
+```
+
+## Data Description  
+
+For Assignment 3, I have chosen two data sets covering Indian Premier League (IPL) Cricket. I find cricket interesting as the way it is played, and scored make it a very statistics heavy sport.  
+
+Both datasets were obtained from Kaggle, a website where individuals and organisations can provide datasets on a wide range of topics. The first dataset covers the player auction that takes place in February each year where teams bid on players to join their team(*Cricket Mastery, 2022*). The dataset was put uploaded to KAGGLE by user VINITSHAH0110, with the data being scraped off pubicly available information surch as Wikipedia and various news websites covering the auction (*VINITSHAH0110, 2022*). The auction has become a major event in India.  
+
+Our second data set, covers IPL player statistics and contains data on players such as their bowling and batting statistics (*Vora, S 2022*). Both datasets were available from Kaggle as CSV files.
+
+Data analysis plays a major part in sports like cricket, particularly when yearly player auctions are held where a lot of money is involved. With this information in mind, I thought it would be interesting to merge both auction and player datasets together to create a dataset that might give insight into the sorts of statistics that might attract highest bids.  
+
+Below we export the data sets into R as follows:  
+
+
+
+
+```{r echo=TRUE}
+
+# This is a chunk for importing/reading/scraping datasets and then merging them. 
+# Code for Importing Data sets
+Player_DF <- read.csv("IPL_Data.csv", header = TRUE, sep=",")
+Auction_DF <- read.csv("IPL_Auction_2022_FullList.csv", header = TRUE, sep=",")
+
+
+```
+
+## Understand  Our Datasets  
+
+
+
+### Player List Data Frame  
+
+Initial inpection of Player data frame allows us to observe a shape of 237 observations and 39 variables.  
+
+Using the **str()** function, we obtain our column names and their respective data types. Along with a brief description of each variable, I have included the variable names and datatypes below:  
+
+* **Name:** *Character Data*  lists name of cricket players in dataset.
+* **Team:** *Character Data* that lists team the cricket player plays for.
+* **Url:** *Character Data* providing URL that directs to cricket player's statistics.
+* **Type:** *Character Data*  noting role of player in team/sport
+* **ValueinCR:** *Numeric Data* notes each player's networth in "Crores" which is a unit of ten million rupees.
+* **Full.Name:** *Character Data*  row of full name for each player.
+* **Born:** *Character Data* provides data on each player's date of birth and birth place.
+* **Age:** *Character Data*  provides data on players age in years, months and days.
+* **National.Side:** *Character Data* data listing the country each player represents and plays for.
+* **Batting.Style:** *Character Data* data on cricket player's batting style, whether player is left-handed or right-handed. 
+* **Bowling:** *Character Data* provides information on players bowling type or style.
+* **Sport:** *Character Data* provides data on game format played. "Cricket" or "IPL"
+* **MatchPlayed:** *Integer Data* on number of matches played by cricketer.
+* **InningsBatted:** *Integer Data* The number of Innings batted in IPL
+* **NotOuts:** *Integer Data* The number of times cricket player has not been outted or dismissed by the end of an inning. 
+* **RunsScored:** *Integer Data* Total number of runs scored in IPL
+* **HighestInnScore:** *Character Data*
+* **X100s:** *Integer Data* number of times a run of 100 or more has been made in a single Inning. Also known as a century (*Harris, M 2022*)
+* **X50s:** *Integer Data* number of times a run of 50 has been made in a single Inning.
+* **X4s:** *Integer Data* number of times when 4 runs are scored by the batting team (*Luke, 2022*).
+* **X6s:** *Integer Data* number of times when 6 runs are scored by the batting team (*Luke, 2022*).
+* **BattingAVG:** *Numeric Data* showing player's batting average
+* **BattingS.R:** *Numeric Data* showing player's strike rate for batting
+* **CatchesTaken:** *Integer Data* number of catches made
+* **StumpingsMade:** *Integer Data* number of stumpings made in IPL
+* **Ducks:** *Integer Data* Number of duck outs. Where a batter has not scored any runs before being dismissed in an inning (*Harris, M 2022*).
+* **R.O:** *Integer Data* number of times dismissed based on run outs
+* **InningsBowled:** *Integer Data* number of innings bowled
+* **Overs:** *Numeric Data* number of overs bowled. An over consists of six legitimate bowls (*Harris, M, 2022*).
+* **Maidens:** *Integer Data* number of maidens bowled. A maiden is where no runs are scored by the batting side (*Harris, M 2022*. 
+* **RunsConceded:** *Integer Data* runs conceded in IPL
+* **Wickets:** *Integer Data* number of wickets taken
+* **Best:** *Character Data* Best bowling figure over runs conceded for player in IPL
+* **X3s:** *Integer Data* number of three wicket hauls scored
+* **X5s:** *Integer Data*  number of five wicket hauls scored 
+* **BowlingAVG:** *Numeric Data* noting bowling average of player.
+* **EconomyRate:** *Numeric Data*noting players economy rate. The economy rate is the number of runs conceded per over bowled. Hence a lower rate is better (*Wikipedia, 2022*). 
+* **S.R:** *Numeric Data* Bowling Strike Rate
+* **Mtc:** *Integer Data* number of matches played in IPL.  
+
+
+### IPL Auction Data Frame  
+
+**str()** tells us that out auction data set is shaped with 589 observations and  17 variables. Each variable is listed below with a brief description and their data type.  
+
+* **Set.No.:** *Integer* set number for player
+* **Set.Name:** *Character* player's set name. Set name relates to player's specialty
+* **Player:** *Character* player's name
+* **Country:**  *Character* player's country of 
+* **State.Association:** *Character* state association.
+* **Age:** *Integer* player's age
+* **Specialism:** *Character* provides data on players specialisation
+* **Batting:** *Character* information on batting style. Right-handed, Left-handed.
+* **Bowling:** *Character* player's bowling style.
+* **IPL:** *Integer* number of IPL matches played.
+* **Previous.IPLTeam.s.:** *Character* player's previous teams
+* **X2021.Team:** *Character* team played for in previous year
+* **C.U.A:** *Character* information on player cap. "Capped" means player has played for national team. "Uncapped" has not played for national team. Associate Nation.
+* **Base.Price:** *Integer* player's base auction price.
+* **Sold.Price:** *Character* players sold price
+* **New.Franchise:** *Character* player's new team or franchise
+* **Bid:** *Character* player's bid status. Two responses. "Sold" and "Unsold".  
+
+
+### Data Type Conversions and Duplicate Values  
+
+Below we use the **as.factor()** function to turn our character variables *Player*, *Team*, *Type*, *National.Side*, *Batting.Style*, *Bowling*, *Sport*, *Set.Name*, *Country*, *State.Association*, *Specialism*, *Batting*, *Bowling*, *X2021.Team*, *C.U.A*, *New.Franchise*, and *Bid*  
+
+We convert all character values to uppercase and use the **unique()** to check for any duplicates in these variables to make sure we don't get any duplicates due to spelling mistakes.  
+
+The **rename()** function is used to change the *Name* column in our player dataset to *Player* for joining in the next step.
+
+
+
+
+```{r echo=TRUE}
+
+# This is a chunk where you inspect the types of variables, data structures, check the attributes in the data and apply proper data type conversions
+
+#Check structure of Player dataframe.
+str(Player_DF)
+head(Player_DF)
+
+#Check structure of Auction dataframe.
+str(Auction_DF)
+head(Player_DF)
+
+################################################################################
+# Convert values in each column to uppercase for ease of analysis.
+
+# Convert variables in data frame to uppercase, if Variable is a character data type.
+Player_DF <- data.frame(lapply(Player_DF, function(v) {
+  if (is.character(v)) return(toupper(v))
+  else return(v)
+}))
+
+# Convert variables in data frame to uppercase, if Variable is a character data type.
+Auction_DF <- data.frame(lapply(Auction_DF, function(v) {
+  if (is.character(v)) return(toupper(v))
+  else return(v)
+}))
+
+# Rename "Name" Variable in Player dataframe to "Player" so that it matches with "Player"
+Player_DF <- rename(Player_DF, "Player" = "Name")
+
+###############################################################################
+
+#Player Data Frame - Data Type Conversions.
+Player_DF$Player <- as.factor(Player_DF$Player)
+Player_DF$Team <- as.factor(Player_DF$Team)
+Player_DF$Type <- as.factor(Player_DF$Type)
+Player_DF$National.Side <- as.factor(Player_DF$National.Side)
+Player_DF$Batting.Style <- as.factor(Player_DF$Batting.Style)
+Player_DF$Bowling <- as.factor(Player_DF$Bowling)
+Player_DF$Sport <- as.factor(Player_DF$Sport)
+
+#Auction Data Frame - Data Type Conversions.
+Auction_DF$Player <- as.factor(Auction_DF$Player)
+Auction_DF$Set.Name <- as.factor(Auction_DF$Set.Name)
+Auction_DF$Country <- as.factor(Auction_DF$Country)
+Auction_DF$State.Association <- as.factor(Auction_DF$State.Association)
+Auction_DF$Specialism <- as.factor(Auction_DF$Specialism)
+Auction_DF$Batting <- as.factor(Auction_DF$Batting)
+Auction_DF$Bowling <- as.factor(Auction_DF$Bowling)
+Auction_DF$X2021.Team <- as.factor(Auction_DF$X2021.Team)
+Auction_DF$C.U.A <- as.factor(Auction_DF$C.U.A)
+Auction_DF$New.Franchise <- as.factor(Auction_DF$New.Franchise)
+Auction_DF$Bid <- as.factor(Auction_DF$Bid)
+
+
+###############################################################################
+##             Check for errors and duplicate values.
+unique(Player_DF$Team)
+unique(Player_DF$Type)
+unique(Player_DF$National.Side)
+unique(Player_DF$Batting.Style)
+unique(Player_DF$Bowling)
+unique(Player_DF$Sport)
+unique(Auction_DF$Set.Name)
+unique(Auction_DF$Country)
+unique(Auction_DF$State.Association)
+unique(Auction_DF$Specialism)
+unique(Auction_DF$Batting)
+unique(Auction_DF$Bowling)
+unique(Auction_DF$X2021.Team)
+unique(Auction_DF$C.U.A)
+unique(Auction_DF$New.Franchise)
+unique(Auction_DF$New.Franchise)
+
+
+
+
+
+
+
+
+
+
+```
+## Merge Player and Auction Dataframes  
+
+Our Player dataset has fewer observations than our Auction dataset, Using the common variable of *Player* which consists of player names, we use a left-join using **merge()** to combine our datasets. Any unmatching rows from our larger Auction dataset are dropped.   
+
+Using **str()** on our merged dataset shows we have a dataframe with 237 observation and 42 variables.   
+
+
+
+```{r echo=TRUE}
+
+###############################################################################
+##############################     MERGE DATA SETS    #########################
+
+# Data sets are merged using the merge function.
+IPLDATA <- merge(x = Player_DF, y = Auction_DF, by = "Player", all.x = TRUE)
+
+str(IPLDATA)
+head(IPLDATA)
+
+```
+##	Tidy & Manipulate Data I  
+
+### Untidy Born Column  
+
+Inspecting our data, we can observe that the **Born** column from our *Player dataset* combines the player's date of birth with their place of birth into the same column. As such, it does not conform to Hadley Wickham's 'Tidy Data Principles'.  
+
+To amend this, we use the **str_replace_all** function to first replace the *","* with an empty space, we then use **separate** function which is part of **tidyr** to split the player's date of birth and place of birth. Split creates for columns which we name **Day**, **Month**, **Year** and **PLACEOFBIRTH**.  
+
+We will combine our newly created **Day**, **Month**, and **Year** columns together. First we convert **Month** to numbers using the **str_replace_all** function. Then we use the **as.numeric** function to convert our **Day**, **Month** and **Year** from characters into numeric data types.  
+
+Lastly, we use **mutate()** to combine our separate **Day**, **Month** and **Year** into a single column which we assign **DATEOFBIRTH**.  
+
+**PLACEOFBIRTH** does not contain consistent information, certain rows only contain cities or provinces. It is not necessary for the purposes of our dataset so it is dropped below.
+
+
+
+
+### Untidy Best Column
+
+Our *Player Dataset* also has a **Best** column which combines a players best Bowls/RunsConceded with the team played agains, we will have to give this stat it's own column in case the stat needs to be analysed.  
+
+We again use **separate** function to split the **Best** column in **Highest.Runs.Scored**, **V**, **VTeam**.
+Again to drop the "*" so that we are left with the bowls over runs conceded figure, we then use the separate function again so that they have separate columns **Best.Bowling.Figure.BOWLS** and **Best.Bowling.Figure.RunsConceded**. These are then converted to numeric data types.  
+
+
+
+
+### Duplicate Columns  
+
+
+inspecting our merged data set, we can observe that there are a number of variables where information is shared and repeated.  
+
+Variables such as name age, and country stand out. Other variables taken from our **Auction_DF** such as **Country**, **Specialism**, **Batting**, **Bowling**, **IPL**, **SoldPrice** and **NewFranchise**, are repeated in **Player_DF** in the following respective columns: **NationalSide**, **Type**, **BattingStyle**, **Bowling**, **MatchPlayed**, **ValueinCR** and **Team**.  
+
+We can run a match or subset the columns and view them side by side:  
+
+**Country Check - NationalSide vs Country**
+We can see that NationalSide from our *Player Dataset*  is the more complete of the two. Countries match and there are fewer missing values.  
+
+**Specialism Check - Specialism vs Type** - We can see that information across these variables match. Type variable from the auction set is more complete and has no missing values.  
+
+**Batting Check - Batting vs Batting Style** - Both columns note info on whether the player is right-handed or left-handed. Batting uses short hand RHB and LHB to note right-handed and left-handed respectively. The columns match, however the **BattingStyle** variable from the *Player Dataset* is the more complete of the two with fewer missing values.  
+
+**Bowling Check** - Column from *Player Dataset* is more complete of the two.  
+
+**Matches Check - IPL vs Match Played**  - **IPL** are matches played. We can see that both columns are similar with the rows of data that they share, but **MatchPlayed** from the *Player Dataset* is more complete with fewer missing values.  
+
+**Sold Price Check - SoldPrice vs ValueinCR** - With Indian currency, a Crore is equal to ten million rupees, a lakh is equal to a hundred thousand rupees (*Wikipedia, 2022*). **SoldPrice** from the *auction data set* is inconsistent as it notes the bid or sale price for the player in different units, C for Crore, and L for lakh. **ValueinCR** from our *Player Dataset* lists the sold price consistently in units of Crore and is more complete with less missing values.
+
+
+**Team Check - NewFranchise vs Team** - **Team** from our *Player Dataset* is more complete even though the team names are abbreviated.  
+
+
+### Tidying up our new Data Frame  
+
+Data used in the **Player_DF** according to Kaggle has been updated more recently with data well after the IPL 2022 auction had taken place. We can observe that the data between the **Player** and **Auction** data sets are similar.  
+
+In creating our tidy data set we will then drop the duplicate columns that are less complete as well as junk columns created from the string splitting we did. 
+
+
+
+
+```{r echo=TRUE}
+
+# This is a chunk where you check whether the data conforms to the tidy data principles and reshape your data into a tidy format
+
+
+# Born Column
+IPLDATA$Born = str_replace_all(IPLDATA$Born, ",", "")
+
+###STR_SPLIT_FIXED DOES NOT WORK
+#IPLDATA$Born <- str_split_fixed(IPLDATA$Born, " ", n = 4)
+
+#IPLDATA$DA <- IPLDATA[,c(7,8,9)]
+#IPLDATA
+
+
+
+IPLDATA <-
+  tidyr::separate(
+  IPLDATA,
+  Born,
+  into = c("MONTH", "DAY", "YEAR", "PLACEOFBIRTH"),
+  sep = " ",
+  remove = TRUE,
+  extra = "merge",
+  fill = "warn",
+)
+
+
+# Replace Month with number
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "JANUARY", "01")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "FEBRUARY", "02")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "MARCH", "03")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "APRIL", "04")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "MAY", "05")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "JUNE", "06")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "JULY", "07")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "AUGUST", "07")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "SEPTEMBER", "09")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "OCTOBER", "10")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "NOVEMBER", "11")
+IPLDATA$MONTH = str_replace_all(IPLDATA$MONTH, "DECEMBER", "12")
+
+
+# Convert Day, Month and YEAR to Numeric
+IPLDATA$DAY <- as.numeric(IPLDATA$DAY)
+IPLDATA$MONTH <- as.numeric(IPLDATA$MONTH)
+IPLDATA$YEAR <- as.numeric(IPLDATA$YEAR)
+
+IPLDATA <- IPLDATA %>% 
+  mutate(DATEOFBIRTH = make_date(YEAR, MONTH, DAY))
+
+
+# Highest Inning Column - separate numeric figure from characters.
+# After separating, we name the numeric component Highest Runs Scored.
+
+IPLDATA <-
+  tidyr::separate(
+  IPLDATA,
+  HighestInnScore,
+  into = c("Highest.Runs.Scored", "V", "VTeam"),
+  sep = " ",
+  remove = TRUE,
+  extra = "merge",
+  fill = "warn",
+)
+
+# Remove '*' in column
+IPLDATA$Highest.Runs.Scored = str_replace_all(IPLDATA$Highest.Runs.Scored, "\\*", "")
+# Change column to numeric
+IPLDATA$Highest.Runs.Scored <- as.numeric(IPLDATA$Highest.Runs.Scored)
+
+
+# Best - separate numeric score from characters and assign numeric column new variable name Best.Bowling.Figure.
+
+IPLDATA <-
+  tidyr::separate(
+  IPLDATA,
+  Best,
+  into = c("Best.Bowling.Figure", "VB", "VBest"),
+  sep = " ",
+  remove = TRUE,
+  extra = "merge",
+  fill = "warn",
+)
+
+IPLDATA <-
+  tidyr::separate(
+  IPLDATA,
+  Best.Bowling.Figure,
+  into = c("Best.Bowling.Figure.BOWLS", "Best.Bowling.Figure.RunsConceded"),
+  sep = "/",
+  remove = TRUE,
+  extra = "merge",
+  fill = "warn",
+)
+
+IPLDATA$Best.Bowling.Figure.BOWLS <- as.numeric(IPLDATA$Best.Bowling.Figure.BOWLS)
+IPLDATA$Best.Bowling.Figure.RunsConceded <- as.numeric(IPLDATA$Best.Bowling.Figure.RunsConceded)
+########################################################################################################################
+###                   Duplicate Columns
+
+### Country 
+Country_Check1 <- data.frame(IPLDATA$National.Side, IPLDATA$Country)
+Country_Check2 <- ifelse(as.character(IPLDATA$National.Side) == as.character(IPLDATA$Country), "Yes", "No")
+
+### Specialism vs Type - Type appears more complete
+Specialism_Check1 <- data.frame(IPLDATA$Specialism, IPLDATA$Type)
+#Specialism_Check2 <- ifelse(as.character(IPLDATA$Specialism) == as.character(IPLDATA$Type), "Yes", "No") - From our first check the information present in both columns matches, however this does not return the desired values as with our Country check above.
+
+### Batting vs Batting Style - BattingStyle from our auction dataframe is more complete
+Batting_Check1 <- data.frame(IPLDATA$Batting, IPLDATA$Batting.Style)
+
+### Bowling - Column from Player data is more complete of the two
+Bowling_Check1 <- data.frame(IPLDATA$Bowling.x, IPLDATA$Bowling.y)
+
+### IPL vs Match Played - we can see similar, but MatchPlayed has more data.
+Matches_Check1 <- data.frame(IPLDATA$IPL, IPLDATA$MatchPlayed, IPLDATA$Mtc)
+
+### SoldPrice vs ValueinCR - we can see they are the same. ValueinCR has no missing data.
+SoldPrice_Check1 <- data.frame(IPLDATA$Sold.Price, IPLDATA$ValueinCR)
+
+### NewFranchise vs Team - Team is more complete even though the team names are abbreviated.
+Team_Check1 <- data.frame(IPLDATA$New.Franchise, IPLDATA$Team)
+
+
+###########       Dropping Duplicate Columns and unnecessary               ###
+
+IPLDATA <- IPLDATA[, !colnames(IPLDATA) %in% c("Url", "MONTH", "DAY", "YEAR", "Age.x", "Specialism", "Batting", "Country", "Bowling.y", "IPL", "Sold.Price", "New.Franchise", "Mtc", "Full.Name", "Set.No.", "Set.Name", "V", "VTeam", "VB", "VBest", "PLACEOFBIRTH", "Age.y")]
+
+
+
+
+
+```
+
+##	Tidy & Manipulate Data II - Creating a Variable from Existing Ones  
+
+For our Player data set we created a new colum by splitting Date of Birth from Place of Birth. The Age column in the existing data was incomplete, but now that we don't have and missing values in our merged dataset, we can create a new age column using **difftime()** function as per the code below.  
+
+
+### Final Touches on Tidying up our new Data Frame  
+
+Lasltly, column names are converted to uppercase, and the **select**function is used to rearrange the columns so that player information is on the left and statistics are on the right hand side of the data frame. Columns *R.O*, *S.R*, *NationalSide*, *X3s*, and *X5s* are respectively renamed to *Runouts*, *StrikeRate*, *Country*, *Wickets X3s* and *Wickets X5s* for better understandability.  
+
+Our data is now tidy according to Hadley Wickham's tidy data principles. Also, in examing our **IPLDATA2** we don't have any inconsistencies with values being presented. Forcing rows to be presented in uppercase resolved all inconsistencies in character data.
+
+
+
+```{r echo=TRUE}
+# Creating Age from Date of Birth (Data Science Made Simple, 2022)
+
+IPLDATA$AGE = as.numeric(difftime(Sys.Date(),IPLDATA$DATEOFBIRTH, units = "weeks"))/52.25
+
+
+
+
+#########            Change column names to upper case
+names(IPLDATA)<-toupper(names(IPLDATA))
+
+
+
+
+#########                Rearrange column order                  #############
+
+IPLDATA2 = select(IPLDATA, PLAYER, DATEOFBIRTH, AGE, NATIONAL.SIDE, TEAM, TYPE,  BATTING.STYLE, BOWLING.X, SPORT, MATCHPLAYED, INNINGSBATTED, NOTOUTS, RUNSSCORED, HIGHEST.RUNS.SCORED, X100S, X50S, X4S, X6S, BATTINGAVG, BATTINGS.R, CATCHESTAKEN, STUMPINGSMADE, DUCKS, R.O, INNINGSBOWLED, OVERS, MAIDENS, RUNSCONCEDED, WICKETS, BEST.BOWLING.FIGURE.BOWLS, BEST.BOWLING.FIGURE.RUNSCONCEDED, X3S, X5S, BOWLINGAVG, ECONOMYRATE, S.R, STATE.ASSOCIATION, PREVIOUS.IPLTEAM.S., X2021.TEAM, C.U.A, BASE.PRICE, , VALUEINCR, BID)
+
+
+
+
+################################################################################
+#####         Rename Columns for Understandability                        ######
+
+
+IPLDATA2 <- IPLDATA2 %>% 
+                rename(
+                  BOWLING = BOWLING.X,
+                  RUNOUTS = R.O,
+                  STRIKERATE = S.R,
+                  COUNTRY = NATIONAL.SIDE,
+                  WICKETS.X3S = X3S,
+                  WICKETS.X5S = X5S
+                  )
+
+
+
+
+```
+
+##	Scan I - NA values: Scanning and Imputing  
+
+From our **IPLDATA2** data frame we can observe that there are a lot of NA values. We can use the following code to return the column names in our data set that has missing values.  
+*NA_Col_Names <- colnames(IPLDATA2)[colSums(is.na(IPLDATA2)) > 0]*  
+
+The following code will also return the number of NAs within each column.  
+*colSums(is.na(IPLDATA2[NA_Col_Names]))*  
+
+This in turn gives us the following results:  
+
+* **PLACEOFBIRTH** - 10 NA values
+* **MATCHPLAYED** - 75 NA values
+* **INNINGSBATTED** - 75 NA values
+* **NOTOUTS** - 75 NA values
+* **RUNSSCORED** - 84 NA Values
+* **HIGHEST.RUNS.SCORED** - 84 NA Values
+* **X100S** - 75 NA values
+* **X50S** - 75 NA values
+* **X4S** - 75 NA values
+* **X6S** - 75 NA values
+* **BATTINGAVG** - 92 NA values
+* **BATTINGS.R** - 75 NA values
+* **CATCHESTAKEN** - 92 NA Values
+* **STUMPINGSMADE** - 92 missing values
+* **DUCKS** - 76 NA values
+* **R.O** - 76 NA Values
+* **INNINGSBOWLED** - 115 NA values
+* **OVERS** - 115 NA values
+* **MAIDENS** - 115 NA values
+* **RUNSCONCEDED* - 115 NA values
+* **WICKETS** - 115 NA values
+* **WICKETS.X3S** - 115 NA values
+* **WICKETS.X5S** - 115 NA values
+* **BOWLINGAVG** - 132 NA values
+* **ECONOMYRATE** - 115 NA values
+* **S.R** - 132 NA values
+* **STATE.ASSOCIATION** - 58 NA values
+* **AGE.Y** - 58 NA values
+* **PREVIOUS.IPLTEAM.S** - 58 NA values
+* **X2021.TEAM** - 58 NA values
+* **C.U.A** - 58 NA values
+* **BASE.PRICE** - 58 NA values
+* **BID** - 58 NA values
+* **DATEOFBIRTH** 6 NA Values  
+
+We can see that there are numerous NAs across multiple variables that cover player statistics. The Player data set, contains a list of URLs that takes users to web pages that cover these statistics for the respective players. If given the time, we could scrape these statistics and fill in the missing data.
+
+Given the limited time we have, we can omit rows where multiple variables contain NAs and impute the rest of the mising values with the mean, median or mode. This still leaves us with plenty of data that enables us to determine the statistics and factors that may make up the bid price of a player at auction.  
+
+We will use the  *filter()* function and use the "OR" Operator to exclude rows from the following variables unless a value is present in the other and assign to a new dataframe that we will call **IPLDATA3**:  
+
+* **MATCHPLAYED**
+* **INNINGSBATTED**
+* **NOTOUTS**
+* **RUNSSCORED**
+* **HIGHEST.RUNS.SCORED**
+* **X100S**
+* **X50S**
+* **X4S** 
+* **X6S** 
+* **BATTINGAVG**
+* **BATTINGS.R** 
+* **CATCHESTAKEN**
+* **STUMPINGSMADE**
+* **DUCKS**
+* **R.O** 
+* **INNINGSBOWLED**
+* **OVERS** 
+* **MAIDENS**
+* **RUNSCONCEDED**
+* **WICKETS**
+* **WICKETS.X3S**
+* **WICKETS.X5S**
+* **BOWLINGAVG**
+* **ECONOMYRATE**
+* **S.R**  
+
+**IPLDATA3** we have a dataframe with 162 observations, and we can oberve there are still NA values in the following variables: *BOWLING*, *SPORT*, *RUNSSCORED*, *HIGHEST.RUNS.SCORED*, *BATTINGAVG*, *CATCHESTAKEN*, *STUMPINGSMADE*, *DUCKS*, *R.O*, *INNINGSBOWLED*, *OVERS*, *MAIDENS*, *RUNSCONCEDED*, *WICKETS*, *BEST.BOWLING.FIGURE.BOWLS*, *BEST.BOWLING.FIGURE.RUNSCONCEDED*, *X3S*, *WICKETS.X5S*, *BOWLINGAVG*, *ECONOMYRATE*, *S.R*, *STATE.ASSOCIATION*, *AGE*, *PREVIOUS.IPLTEAM.S.*, *X2021.TEAM*, *C.U.A*, *BASE.PRICE*, and *BID*  
+
+We will impute the following variables as below:  
+
+* **BOWLING:** - There are a number of Bowling styles unique to players, so we replace NA values with "UNKNOWN" value.
+* **SPORT:** - We replace with the mode which is IPL. This is also in keeping with the more recent **Player** data set with current IPL players.
+* **RUNSSCORED:** - discrete number so we replace with median.
+* **HIGHEST.RUNS.SCORED:** - discrete number so we replace with median.
+* **BATTINGAVG:** - Batting Average is a percentage, so we can impute with mean.
+* **CATCHESTAKEN:** - discrete number so we replace with median.
+* **STUMPINGSMADE:** - discrete number so we replace with median.
+* **DUCKS:** - discrete number so we replace with median.
+* **R.O:** - discrete number so we replace with median.
+* **INNINGSBOWLED:** - discrete number so we replace with median.
+* **OVERS:** - discrete number so we replace with median.
+* **MAIDENS:** - discrete number so we replace with median.
+* **RUNSCONCEDED:** - discrete number so we replace with median.
+* **WICKETS:** - discrete number so we replace with median.
+* **BEST.BOWLING.FIGURE.BOWLS:** - discrete number so we replace with median.
+* **BEST.BOWLING.FIGURE.RUNSCONCEDED:** - discrete number so we replace with median.
+* **WICKETS.X3S:** - discrete number so we replace with median.
+* **WICKETS.X5S:** - discrete number so we replace with median.
+* **BOWLINGAVG:** - Bowling Average is a percentage, so we can impute with mean.
+* **ECONOMYRATE:** - Economy Rate is a percentage, so we can impute with mean.
+* **S.R:** - Bowling Strike Rate is a percentage, so we impute with mean
+* **STATE.ASSOCIATION:** - There are numerous states that players can be associated with, we replace the NA values with "UNKNOWN".
+* **PREVIOUS.IPLTEAM.S.:** - We replace the NA values with "UNKNOWN" value, as players may have been associated with one, or numerous teams previously, or none at all and we do not know this value.
+* **X2021.TEAM:** - We replace NA values with "UNKNOWN" value. We don't know which team a player was associated with in the previous year, if they were associatied with one. For our analysis, we can leave "Unkown".
+* **C.U.A:** - Categorical Data, so we can replace with mode value
+* **BASE.PRICE:** - The other values in this column are even and somewhat "discrete" in nature, so we replace with median value.
+* **BID:** - We can replace NA values with the mode which is "SOLD". This is also a logical choices as the **Player** data set is more recent than the **Auction** dataset.  
+
+This removes all NA values from our **IPLDATA3** Data frame.
+
+
+
+
+
+```{r echo=TRUE}
+
+# This is a chunk where you scan the data for missing values, inconsistencies and obvious errors
+## NA Values
+
+
+#### Columns with spaces/ blanks instead of NAs - We replace the blank spaces with NAs for consistency
+#(zx8754, 2021)
+levels(IPLDATA2$COUNTRY)
+levels(IPLDATA2$COUNTRY) <- c(levels(IPLDATA2$COUNTRY), "NA")
+IPLDATA2$COUNTRY[IPLDATA2$COUNTRY == ""] <- 'NA'
+
+
+# Sport
+levels(IPLDATA2$SPORT)
+levels(IPLDATA2$SPORT) <- c(levels(IPLDATA2$SPORT), "NA")
+IPLDATA2$SPORT[IPLDATA2$SPORT == ""] <- 'NA'
+
+
+# Batting Style
+levels(IPLDATA2$BATTING.STYLE)
+levels(IPLDATA2$BATTING.STYLE) <- c(levels(IPLDATA2$BATTING.STYLE), "NA")
+IPLDATA2$BATTING.STYLE[IPLDATA2$BATTING.STYLE == ""] <- 'NA'
+
+
+# Bowling
+levels(IPLDATA2$BOWLING)
+levels(IPLDATA2$BOWLING) <- c(levels(IPLDATA2$BOWLING), "NA")
+IPLDATA2$BOWLING[IPLDATA2$BOWLING == ""] <- 'NA'
+
+
+# Previous IPL Team
+levels(IPLDATA2$PREVIOUS.IPLTEAM.S.)
+levels(IPLDATA2$PREVIOUS.IPLTEAM.S.) <- c(levels(IPLDATA2$PREVIOUS.IPLTEAM.S.), "NA")
+IPLDATA2$PREVIOUS.IPLTEAM.S.[IPLDATA2$PREVIOUS.IPLTEAM.S. == ""] <- 'NA'
+
+
+# x2021 Team
+levels(IPLDATA2$X2021.TEAM)
+levels(IPLDATA2$X2021.TEAM) <- c(levels(IPLDATA2$X2021.TEAM), "NA")
+IPLDATA2$X2021.TEAM[IPLDATA2$X2021.TEAM == ""] <- 'NA'
+
+
+#Best Bowling figure
+#data.class(IPLDATA2$Best)
+#IPLDATA2$Best.Bowling.Figure.BOWLS = str_replace_all(IPLDATA$Best.Bowling.Figure.BOWLS, "  ", "NA")
+
+#State Association
+levels(IPLDATA2$STATE.ASSOCIATION)
+levels(IPLDATA2$STATE.ASSOCIATION) <- c(levels(IPLDATA2$STATE.ASSOCIATION), "NA")
+IPLDATA2$STATE.ASSOCIATION[IPLDATA2$STATE.ASSOCIATION == ""] <- 'NA'
+
+
+
+#########################################################################################################################################
+
+#Finds the variable names contain missing values.
+NA_Col_Names <- colnames(IPLDATA2)[colSums(is.na(IPLDATA2)) > 0]
+NA_Col_Names
+
+
+#Finds how many NA values are within each variable in Col_names
+colSums(is.na(IPLDATA2[NA_Col_Names]))
+
+# Exclude rows from multiple columns -
+# We use the OR | function to exclude na values in the following rows, unless another value is present.
+IPLDATA3 <- IPLDATA2 %>% filter(!is.na(MATCHPLAYED) | !is.na(INNINGSBATTED) | !is.na(NOTOUTS) |  !is.na(RUNSSCORED) | !is.na(HIGHEST.RUNS.SCORED) |!is.na(X100S) | !is.na(X50S) | !is.na(X4S) | !is.na(X6S) | !is.na(BATTINGAVG) |!is.na(BATTINGS.R) | !is.na(CATCHESTAKEN) | !is.na(STUMPINGSMADE) | !is.na(DUCKS) | !is.na(RUNOUTS) | !is.na(INNINGSBOWLED | !is.na(OVERS) | !is.na(MAIDENS) | !is.na(RUNSCONCEDED) | !is.na(WICKETS) | !is.na(WICKETS.X3S) | !is.na(WICKETS.X5S) | !is.na(BOWLINGAVG) | !is.na(ECONOMYRATE) | !is.na(STRIKERATE)))
+
+nrow(IPLDATA3)
+
+
+# NA values in new data frame
+NA_Col_Names2 <- colnames(IPLDATA3)[colSums(is.na(IPLDATA3)) > 0]
+NA_Col_Names2
+
+colSums(is.na(IPLDATA3[NA_Col_Names2]))
+
+####                  Unused              code###
+#IPLDATA3 <- IPLDATA2 %>% filter(!is.na(MATCHPLAYED) & !is.na(INNINGSBATTED) & !is.na(NOTOUTS) & !is.na(X100S) & #!is.na(X50S) & !is.na(X4S) & !is.na(X6S) & !is.na(BATTINGS.R))
+#nrow(IPLDATA3)
+
+
+################################################################################
+#######                       IMPUTING NA VALUES                      ##########
+
+#BOWLING:
+levels(IPLDATA3$BOWLING)
+levels(IPLDATA3$BOWLING) <- c(levels(IPLDATA2$BOWLING), "UNKNOWN")
+IPLDATA3$BOWLING[IPLDATA3$BOWLING == "NA"] <- 'UNKNOWN'
+
+#SPORT:
+levels(IPLDATA3$SPORT)
+levels(IPLDATA3$SPORT) <- c(levels(IPLDATA2$SPORT), "IPL")
+IPLDATA3$SPORT[IPLDATA3$SPORT == "NA"] <- 'IPL'
+
+#RUNSSCORED:
+IPLDATA3$RUNSSCORED %<>% impute(IPLDATA3$RUNSSCORED, fun = median)
+
+#HIGHEST.RUNS.SCORED:
+IPLDATA3$HIGHEST.RUNS.SCORED %<>% impute(IPLDATA3$HIGHEST.RUNS.SCORED, fun = median)
+
+#BATTINGAVG:
+IPLDATA3$BATTINGAVG %<>% impute(IPLDATA3$BATTINGAVG, fun = mean)
+
+#CATCHESTAKEN:
+IPLDATA3$CATCHESTAKEN %<>% impute(IPLDATA3$CATCHESTAKEN, fun = median)
+
+#STUMPINGSMADE:
+IPLDATA3$STUMPINGSMADE %<>% impute(IPLDATA3$STUMPINGSMADE, fun = median)
+
+#DUCKS:
+IPLDATA3$DUCKS %<>% impute(IPLDATA3$DUCKS, fun = median)
+
+#RUNOUTS:
+IPLDATA3$RUNOUTS %<>% impute(IPLDATA3$RUNOUTS, fun = median)
+
+#INNINGSBOWLED:
+IPLDATA3$INNINGSBOWLED %<>% impute(IPLDATA3$INNINGSBOWLED, fun = median)
+
+#OVERS:
+IPLDATA3$OVERS %<>% impute(IPLDATA3$OVERS, fun = median)
+
+#MAIDENS:
+IPLDATA3$MAIDENS %<>% impute(IPLDATA3$MAIDENS, fun = median)
+
+#RUNSCONCEDED:
+IPLDATA3$RUNSCONCEDED %<>% impute(IPLDATA3$RUNSCONCEDED, fun = median)
+
+#WICKETS:
+IPLDATA3$WICKETS %<>% impute(IPLDATA3$WICKETS, fun = median)
+
+#BEST.BOWLING.FIGURE.BOWLS:
+IPLDATA3$BEST.BOWLING.FIGURE.BOWLS %<>% impute(IPLDATA3$BEST.BOWLING.FIGURE.BOWLS, fun = median)
+
+#BEST.BOWLING.FIGURE.RUNSCONCEDED:
+IPLDATA3$BEST.BOWLING.FIGURE.RUNSCONCEDED %<>% impute(IPLDATA3$BEST.BOWLING.FIGURE.RUNSCONCEDED, fun = median)
+
+#WICKETS.X3S:
+IPLDATA3$WICKETS.X3S %<>% impute(IPLDATA3$WICKETS.X3S, fun = median)
+
+#WICKETS.X5S:
+IPLDATA3$WICKETS.X5S %<>% impute(IPLDATA3$WICKETS.X5S, fun = median)
+
+#BOWLINGAVG:
+IPLDATA3$BOWLINGAVG %<>% impute(IPLDATA3$BOWLINGAVG, fun = mean)
+
+#ECONOMYRATE:
+IPLDATA3$ECONOMYRATE %<>% impute(IPLDATA3$ECONOMYRATE, fun = mean)
+
+#STRIKERATE:
+IPLDATA3$STRIKERATE %<>% impute(IPLDATA3$STRIKERATE, fun = mean)
+
+#STATE.ASSOCIATION: - Numerous number of states that players can be associated. We replace State association with "UNKNOWN"
+IPLDATA3$STATE.ASSOCIATION <- as.character(IPLDATA3$STATE.ASSOCIATION)
+IPLDATA3$STATE.ASSOCIATION[is.na(as.character(IPLDATA3$STATE.ASSOCIATION))] <- "UNKNOWN"
+IPLDATA3$STATE.ASSOCIATION <- as.factor(IPLDATA3$STATE.ASSOCIATION)
+
+#AGE: - Impute with unknown... we have player date of birth so we can mutate this column so that all players ages are displayed correctly.
+
+
+
+#PREVIOUS.IPLTEAM.S.: - Replace NA values with unknown
+IPLDATA3$PREVIOUS.IPLTEAM.S.[is.na(IPLDATA3$PREVIOUS.IPLTEAM.S.)] <- "UNKNOWN"
+
+
+#X2021.TEAM:  - Replace NA values with unknown
+IPLDATA3$X2021.TEAM <- as.character(IPLDATA3$X2021.TEAM)
+IPLDATA3$X2021.TEAM[is.na(as.character(IPLDATA3$X2021.TEAM))] <- "UNKNOWN"
+IPLDATA3$X2021.TEAM <- as.factor(IPLDATA3$X2021.TEAM)
+
+#C.U.A:
+IPLDATA3$C.U.A %<>% impute(IPLDATA3$C.U.A, fun = mode)
+
+
+#BASE.PRICE:
+IPLDATA3$BASE.PRICE %<>% impute(IPLDATA3$BASE.PRICE, fun = median)
+
+#BID:
+IPLDATA3$BID %<>% impute(IPLDATA3$BID, fun = mode)
+
+
+###############################################################################
+#Check for NAs in new dataframe
+
+
+NA_Col_Names3 <- colnames(IPLDATA3)[colSums(is.na(IPLDATA3)) > 0]
+NA_Col_Names3
+
+
+#Finds how many NA values are within each variable in Col_names
+colSums(is.na(IPLDATA3[NA_Col_Names3]))
+
+
+
+```
+
+##	Scan II - Outliers: Scanning and Imputing  
+
+Our Data set currently contains 42 variables, of which 29 contain numeric data. Due to time, we will select a handful of these variables, covering a small selection of statistics covering bowling, batting, fielding and values for players. We will select the following numeric data and assign it to **IPLDATA4**:    
+
+
+### Univariate Outliers  
+
+For detecting outliers, we will use Tuckey's method to detect them. Tukey's method captures values that are more than 1.5 times Inter-Quartile range on the lower and upper quartile of a variable.  
+
+The code below returns: The number of outliers' the rows they appear in; and their values. Number of outliers detected for our chosen variables are:  
+
+* **MATCHPLAYED:** 9
+* **NOTOUTS:** 10
+* **RUNSSCORED:** 0
+* **BATTINGAVG:** 0
+* **BATTINGS.R:** 0
+* **X4S:** 18
+* **X6S:** 17
+* **CATCHESTAKEN:** 22
+* **STUMPINGSMADE:** 0
+* **WICKETS:** 17
+* **STRIKERATE:** 23
+* **ECONOMYRATE:** 26
+* **BASE.PRICE:** 0
+* **VALUEINCR:** 0  
+
+
+We then use the cap function which allows us to replace the outliers detected with either the mean, median or mode.  
+
+* **MATCHPLAYED:** - Discrete values. Impute outliers with Median Value.
+* **NOTOUTS:** - Discrete values. Impute outliers with Median value.
+* **X4S:** - Discrete values. Impute Outliers with Median value.
+* **X6S:** - Discrete values. Impute Outliers with Median value.
+* **CATCHESTAKEN:** - Discrete values. Impute Outliers with Median value.
+* **WICKETS:** - Discrete values. Impute Outliers with Median value.
+* **STRIKERATE:** - Percentage. Impute Outliers with mean value.
+* **ECONOMYRATE:** - Percentage. Impute outliers with mean value.  
+
+
+ 
+
+
+
+
+
+```{r echo=TRUE}
+
+# This is a chunk where you scan the numeric data for outliers 
+
+
+IPLDATA4 = select(IPLDATA3, PLAYER, DATEOFBIRTH, AGE, COUNTRY, TEAM, TYPE, BATTING.STYLE, BOWLING, SPORT, MATCHPLAYED, NOTOUTS, RUNSSCORED, BATTINGAVG, BATTINGS.R, X4S, X6S, CATCHESTAKEN, STUMPINGSMADE, WICKETS, STRIKERATE, ECONOMYRATE, BASE.PRICE, VALUEINCR)
+
+IPLDATA4
+
+
+#########################################################################################
+####                         UNIVARIATE OUTLIER DETECTION                        ########
+
+
+########################    Matches Played   #################################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_MATCHPLAYED <- quantile(IPLDATA4$MATCHPLAYED, probs = 0.25)
+q3_MATCHPLAYED <- quantile(IPLDATA4$MATCHPLAYED, probs = 0.75)
+iqr_MATCHPLAYED <- q3_MATCHPLAYED - q1_MATCHPLAYED
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+MATCHPLAYED_lower_fence <- q1_MATCHPLAYED - (1.5 * iqr_MATCHPLAYED) # Recall that the lower fence is Q1 minus the inter-quartile range
+MATCHPLAYED_upper_fence <- q3_MATCHPLAYED + (1.5 * iqr_MATCHPLAYED) # Recall that the upper fence is Q3 plus the inter-quartile range
+MATCHPLAYED_up_outliers <- which(IPLDATA4$MATCHPLAYED > MATCHPLAYED_upper_fence)
+MATCHPLAYED_low_outliers <- which(IPLDATA4$MATCHPLAYED < MATCHPLAYED_lower_fence)
+length(MATCHPLAYED_up_outliers) 
+length(MATCHPLAYED_low_outliers) 
+MATCHPLAYED_low_outliers           
+MATCHPLAYED_up_outliers              
+IPLDATA4$MATCHPLAYED[MATCHPLAYED_up_outliers]
+
+# 9 Outliers found.
+# Rows: 8  29  61  88 111 118 119 131 156
+# Values: 175 213 178 220 200 193 213 192 207
+
+
+
+########################     NOTOUTS      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_NOTOUTS <- quantile(IPLDATA4$NOTOUTS, probs = 0.25)
+q3_NOTOUTS <- quantile(IPLDATA4$NOTOUTS, probs = 0.75)
+iqr_NOTOUTS <- q3_NOTOUTS - q1_NOTOUTS
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+NOTOUTS_lower_fence <- q1_NOTOUTS - (1.5 * iqr_NOTOUTS) # Recall that the lower fence is Q1 minus the inter-quartile range
+NOTOUTS_upper_fence <- q3_NOTOUTS + (1.5 * iqr_NOTOUTS) # Recall that the upper fence is Q3 plus the inter-quartile range
+NOTOUTS_up_outliers <- which(IPLDATA4$NOTOUTS > NOTOUTS_upper_fence)
+NOTOUTS_low_outliers <- which(IPLDATA4$NOTOUTS < NOTOUTS_lower_fence)
+length(NOTOUTS_up_outliers) 
+length(NOTOUTS_low_outliers) 
+NOTOUTS_low_outliers           
+NOTOUTS_up_outliers              
+IPLDATA4$NOTOUTS[NOTOUTS_up_outliers]
+
+# 10 Outliers found.
+# Rows: 8  29  30  36  61  75  88 111 119 156
+# Values: 31 35 40 31 51 27 73 63 28 31
+
+
+
+########################     RUNSSCORED      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_RUNSSCORED <- quantile(IPLDATA4$RUNSSCORED, probs = 0.25)
+q3_RUNSSCORED <- quantile(IPLDATA4$RUNSSCORED, probs = 0.75)
+iqr_RUNSSCORED <- q3_RUNSSCORED - q1_RUNSSCORED
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+RUNSSCORED_lower_fence <- q1_RUNSSCORED - (1.5 * iqr_RUNSSCORED) # Recall that the lower fence is Q1 minus the inter-quartile range
+RUNSSCORED_upper_fence <- q3_RUNSSCORED + (1.5 * iqr_RUNSSCORED) # Recall that the upper fence is Q3 plus the inter-quartile range
+RUNSSCORED_up_outliers <- which(IPLDATA4$RUNSSCORED > RUNSSCORED_upper_fence)
+RUNSSCORED_low_outliers <- which(IPLDATA4$RUNSSCORED < RUNSSCORED_lower_fence)
+length(RUNSSCORED_up_outliers) 
+length(RUNSSCORED_low_outliers) 
+RUNSSCORED_low_outliers           
+RUNSSCORED_up_outliers              
+IPLDATA4$RUNSSCORED[RUNSSCORED_up_outliers]
+
+# no outliers
+
+
+
+
+########################     BATTINGAVG      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_BATTINGAVG <- quantile(IPLDATA4$BATTINGAVG, probs = 0.25)
+q3_BATTINGAVG <- quantile(IPLDATA4$BATTINGAVG, probs = 0.75)
+iqr_BATTINGAVG <- q3_BATTINGAVG - q1_BATTINGAVG
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+BATTINGAVG_lower_fence <- q1_BATTINGAVG - (1.5 * iqr_BATTINGAVG) # Recall that the lower fence is Q1 minus the inter-quartile range
+BATTINGAVG_upper_fence <- q3_BATTINGAVG + (1.5 * iqr_BATTINGAVG) # Recall that the upper fence is Q3 plus the inter-quartile range
+BATTINGAVG_up_outliers <- which(IPLDATA4$BATTINGAVG > BATTINGAVG_upper_fence)
+BATTINGAVG_low_outliers <- which(IPLDATA4$BATTINGAVG < BATTINGAVG_lower_fence)
+length(BATTINGAVG_up_outliers) 
+length(BATTINGAVG_low_outliers) 
+BATTINGAVG_low_outliers           
+BATTINGAVG_up_outliers              
+IPLDATA4$BATTINGAVG[BATTINGAVG_up_outliers]
+
+# No Outliers found
+
+########################     BATTINGS.R      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_BATTINGS.R <- quantile(IPLDATA4$BATTINGS.R, probs = 0.25)
+q3_BATTINGS.R <- quantile(IPLDATA4$BATTINGS.R, probs = 0.75)
+iqr_BATTINGS.R <- q3_BATTINGS.R - q1_BATTINGS.R
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+BATTINGS.R_lower_fence <- q1_BATTINGS.R - (1.5 * iqr_BATTINGS.R) # Recall that the lower fence is Q1 minus the inter-quartile range
+BATTINGS.R_upper_fence <- q3_BATTINGS.R + (1.5 * iqr_BATTINGS.R) # Recall that the upper fence is Q3 plus the inter-quartile range
+BATTINGS.R_up_outliers <- which(IPLDATA4$BATTINGS.R > BATTINGS.R_upper_fence)
+BATTINGS.R_low_outliers <- which(IPLDATA4$BATTINGS.R < BATTINGS.R_lower_fence)
+length(BATTINGS.R_up_outliers) 
+length(BATTINGS.R_low_outliers) 
+BATTINGS.R_low_outliers           
+BATTINGS.R_up_outliers              
+IPLDATA4$BATTINGS.R[BATTINGS.R_up_outliers]
+
+##  No Outliers Found
+
+
+
+
+########################     X4S      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_X4S <- quantile(IPLDATA4$X4S, probs = 0.25)
+q3_X4S <- quantile(IPLDATA4$X4S, probs = 0.75)
+iqr_X4S <- q3_X4S - q1_X4S
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+X4S_lower_fence <- q1_X4S - (1.5 * iqr_X4S) # Recall that the lower fence is Q1 minus the inter-quartile range
+X4S_upper_fence <- q3_X4S + (1.5 * iqr_X4S) # Recall that the upper fence is Q3 plus the inter-quartile range
+X4S_up_outliers <- which(IPLDATA4$X4S > X4S_upper_fence)
+X4S_low_outliers <- which(IPLDATA4$X4S < X4S_lower_fence)
+length(X4S_up_outliers) 
+length(X4S_low_outliers) 
+X4S_low_outliers           
+X4S_up_outliers              
+IPLDATA4$X4S[X4S_up_outliers]
+
+# 18 Outliers found.
+# Rows: 5   8  24  29  32  61  62  75  80  88 104 115 118 119 123 131 141 156
+# Values: 417 324 525 399 265 212 282 309 203 325 230 225 462 491 236 654 261 546
+
+
+
+
+########################     X6S      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_X6S <- quantile(IPLDATA4$X6S, probs = 0.25)
+q3_X6S <- quantile(IPLDATA4$X6S, probs = 0.75)
+iqr_X6S <- q3_X6S - q1_X6S
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+X6S_lower_fence <- q1_X6S - (1.5 * iqr_X6S) # Recall that the lower fence is Q1 minus the inter-quartile range
+X6S_upper_fence <- q3_X6S + (1.5 * iqr_X6S) # Recall that the upper fence is Q3 plus the inter-quartile range
+X6S_up_outliers <- which(IPLDATA4$X6S > X6S_upper_fence)
+X6S_low_outliers <- which(IPLDATA4$X6S < X6S_lower_fence)
+length(X6S_up_outliers) 
+length(X6S_low_outliers) 
+X6S_low_outliers           
+X6S_up_outliers              
+IPLDATA4$X6S[X6S_up_outliers]
+
+# 17 Outliers found.
+# Rows: 8   9  24  29  32  33  36  61  62  75  88 115 118 119 123 131 156
+# Values: 149 143 201 112  96 112  98 214 134 103 219 113 168 227 132 124 210
+
+
+
+
+
+########################     CATCHESTAKEN      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_CATCHESTAKEN <- quantile(IPLDATA4$CATCHESTAKEN, probs = 0.25)
+q3_CATCHESTAKEN <- quantile(IPLDATA4$CATCHESTAKEN, probs = 0.75)
+iqr_CATCHESTAKEN <- q3_CATCHESTAKEN - q1_CATCHESTAKEN
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+CATCHESTAKEN_lower_fence <- q1_CATCHESTAKEN - (1.5 * iqr_CATCHESTAKEN) # Recall that the lower fence is Q1 minus the inter-quartile range
+CATCHESTAKEN_upper_fence <- q3_CATCHESTAKEN + (1.5 * iqr_CATCHESTAKEN) # Recall that the upper fence is Q3 plus the inter-quartile range
+CATCHESTAKEN_up_outliers <- which(IPLDATA4$CATCHESTAKEN > CATCHESTAKEN_upper_fence)
+CATCHESTAKEN_low_outliers <- which(IPLDATA4$CATCHESTAKEN < CATCHESTAKEN_lower_fence)
+length(CATCHESTAKEN_up_outliers) 
+length(CATCHESTAKEN_low_outliers) 
+CATCHESTAKEN_low_outliers           
+CATCHESTAKEN_up_outliers              
+IPLDATA4$CATCHESTAKEN[CATCHESTAKEN_up_outliers]
+
+# 22 Outliers found.
+# Rows: 5   8  23  24  29  30  32  36  61  62  75  88 104 111 115 118 119 123 131 141 156 160
+# Values: 58  58  53  68 123  77  66  53  96  50  75 126  53  81  56  87  90  59  82  55  84  69
+
+
+
+########################     STUMPINGSMADE      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_STUMPINGSMADE <- quantile(IPLDATA4$STUMPINGSMADE, probs = 0.25)
+q3_STUMPINGSMADE <- quantile(IPLDATA4$STUMPINGSMADE, probs = 0.75)
+iqr_STUMPINGSMADE <- q3_STUMPINGSMADE - q1_STUMPINGSMADE
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+STUMPINGSMADE_lower_fence <- q1_STUMPINGSMADE - (1.5 * iqr_STUMPINGSMADE) # Recall that the lower fence is Q1 minus the inter-quartile range
+STUMPINGSMADE_upper_fence <- q3_STUMPINGSMADE + (1.5 * iqr_STUMPINGSMADE) # Recall that the upper fence is Q3 plus the inter-quartile range
+STUMPINGSMADE_up_outliers <- which(IPLDATA4$STUMPINGSMADE > STUMPINGSMADE_upper_fence)
+STUMPINGSMADE_low_outliers <- which(IPLDATA4$STUMPINGSMADE < STUMPINGSMADE_lower_fence)
+length(STUMPINGSMADE_up_outliers) 
+length(STUMPINGSMADE_low_outliers) 
+STUMPINGSMADE_low_outliers           
+STUMPINGSMADE_up_outliers              
+IPLDATA4$STUMPINGSMADE[STUMPINGSMADE_up_outliers]
+
+#No Outliers Found
+
+
+
+
+
+########################     WICKETS      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_WICKETS <- quantile(IPLDATA4$WICKETS, probs = 0.25)
+q3_WICKETS <- quantile(IPLDATA4$WICKETS, probs = 0.75)
+iqr_WICKETS <- q3_WICKETS - q1_WICKETS
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+WICKETS_lower_fence <- q1_WICKETS - (1.5 * iqr_WICKETS) # Recall that the lower fence is Q1 minus the inter-quartile range
+WICKETS_upper_fence <- q3_WICKETS + (1.5 * iqr_WICKETS) # Recall that the upper fence is Q3 plus the inter-quartile range
+WICKETS_up_outliers <- which(IPLDATA4$WICKETS > WICKETS_upper_fence)
+WICKETS_low_outliers <- which(IPLDATA4$WICKETS < WICKETS_lower_fence)
+length(WICKETS_up_outliers) 
+length(WICKETS_low_outliers) 
+WICKETS_low_outliers           
+WICKETS_up_outliers              
+IPLDATA4$WICKETS[WICKETS_up_outliers]
+
+# 17 Outliers found.
+# Rows: 9  17  19  30  38  46  48  53  86 107 110 111 122 140 147 150 162
+# Values: 72  95 142 167  78 130  85  76  79  93 145 127 112 143  76 119 139
+
+
+
+
+########################     STRIKERATE      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_STRIKERATE <- quantile(IPLDATA4$STRIKERATE, probs = 0.25)
+q3_STRIKERATE <- quantile(IPLDATA4$STRIKERATE, probs = 0.75)
+iqr_STRIKERATE <- q3_STRIKERATE - q1_STRIKERATE
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+STRIKERATE_lower_fence <- q1_STRIKERATE - (1.5 * iqr_STRIKERATE) # Recall that the lower fence is Q1 minus the inter-quartile range
+STRIKERATE_upper_fence <- q3_STRIKERATE + (1.5 * iqr_STRIKERATE) # Recall that the upper fence is Q3 plus the inter-quartile range
+STRIKERATE_up_outliers <- which(IPLDATA4$STRIKERATE > STRIKERATE_upper_fence)
+STRIKERATE_low_outliers <- which(IPLDATA4$STRIKERATE < STRIKERATE_lower_fence)
+length(STRIKERATE_up_outliers) 
+length(STRIKERATE_low_outliers) 
+STRIKERATE_low_outliers           
+STRIKERATE_up_outliers              
+IPLDATA4$STRIKERATE[STRIKERATE_up_outliers]
+IPLDATA4$STRIKERATE[STRIKERATE_low_outliers]
+
+
+# 23 Outliers found.
+# Rows: 5   7  14  34  63  71 126 131 22  27  31  37  47  54  64  72  93  94 117 130 148 151 156
+# Values: 6.00  8.66 12.00 12.00 12.25 12.96 13.33 12.00 108.00  36.11  66.00  38.40  45.75  33.60  31.38  60.00  66.00  34.47  44.33  41.00  34.00  36.00  62.75
+
+
+
+########################     ECONOMYRATE      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_ECONOMYRATE <- quantile(IPLDATA4$ECONOMYRATE, probs = 0.25)
+q3_ECONOMYRATE <- quantile(IPLDATA4$ECONOMYRATE, probs = 0.75)
+iqr_ECONOMYRATE <- q3_ECONOMYRATE - q1_ECONOMYRATE
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+ECONOMYRATE_lower_fence <- q1_ECONOMYRATE - (1.5 * iqr_ECONOMYRATE) # Recall that the lower fence is Q1 minus the inter-quartile range
+ECONOMYRATE_upper_fence <- q3_ECONOMYRATE + (1.5 * iqr_ECONOMYRATE) # Recall that the upper fence is Q3 plus the inter-quartile range
+ECONOMYRATE_up_outliers <- which(IPLDATA4$ECONOMYRATE > ECONOMYRATE_upper_fence)
+ECONOMYRATE_low_outliers <- which(IPLDATA4$ECONOMYRATE < ECONOMYRATE_lower_fence)
+length(ECONOMYRATE_up_outliers) 
+length(ECONOMYRATE_low_outliers) 
+ECONOMYRATE_low_outliers           
+ECONOMYRATE_up_outliers              
+IPLDATA4$ECONOMYRATE[ECONOMYRATE_up_outliers]
+IPLDATA4$ECONOMYRATE[ECONOMYRATE_low_outliers]
+
+# 26 Outliers found.
+# Rows: 4   5  14  84 107 126 140 153 1   7  24  32  34  55  63  69  74  78 106 108 112 117 124 125 148 158
+# Values: 5.75 5.00 5.50 6.84 6.33 6.80 6.74 6.82 13.12 10.03 12.00 16.00 10.00 10.33 11.38 13.00 13.00 12.25 12.00 10.50  9.94  9.96 18.00 11.40 11.29 10.00
+
+
+
+
+
+########################     BASE.PRICE      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_BASE.PRICE <- quantile(IPLDATA4$BASE.PRICE, probs = 0.25)
+q3_BASE.PRICE <- quantile(IPLDATA4$BASE.PRICE, probs = 0.75)
+iqr_BASE.PRICE <- q3_BASE.PRICE - q1_BASE.PRICE
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+BASE.PRICE_lower_fence <- q1_BASE.PRICE - (1.5 * iqr_BASE.PRICE) # Recall that the lower fence is Q1 minus the inter-quartile range
+BASE.PRICE_upper_fence <- q3_BASE.PRICE + (1.5 * iqr_BASE.PRICE) # Recall that the upper fence is Q3 plus the inter-quartile range
+BASE.PRICE_up_outliers <- which(IPLDATA4$BASE.PRICE > BASE.PRICE_upper_fence)
+BASE.PRICE_low_outliers <- which(IPLDATA4$BASE.PRICE < BASE.PRICE_lower_fence)
+length(BASE.PRICE_up_outliers) 
+length(BASE.PRICE_low_outliers) 
+BASE.PRICE_low_outliers           
+BASE.PRICE_up_outliers              
+IPLDATA4$BASE.PRICE[BASE.PRICE_up_outliers]
+IPLDATA4$BASE.PRICE[BASE.PRICE_low_outliers]
+
+# No Outliers
+
+
+
+
+
+########################     VALUEINCR      #######################
+
+
+# We Calculate the quartiles using the quantiles() function:
+q1_VALUEINCR <- quantile(IPLDATA4$VALUEINCR, probs = 0.25)
+q3_VALUEINCR <- quantile(IPLDATA4$VALUEINCR, probs = 0.75)
+iqr_VALUEINCR <- q3_VALUEINCR - q1_VALUEINCR
+
+
+# Once we have the IQR, we can calculate the upper and lower fence: 
+# Use any of the above methods to determine Q3 and Q1, and then: 
+VALUEINCR_lower_fence <- q1_VALUEINCR - (1.5 * iqr_VALUEINCR) # Recall that the lower fence is Q1 minus the inter-quartile range
+VALUEINCR_upper_fence <- q3_VALUEINCR + (1.5 * iqr_VALUEINCR) # Recall that the upper fence is Q3 plus the inter-quartile range
+VALUEINCR_up_outliers <- which(IPLDATA4$VALUEINCR > VALUEINCR_upper_fence)
+VALUEINCR_low_outliers <- which(IPLDATA4$VALUEINCR < VALUEINCR_lower_fence)
+length(VALUEINCR_up_outliers) 
+length(VALUEINCR_low_outliers) 
+VALUEINCR_low_outliers           
+VALUEINCR_up_outliers              
+IPLDATA4$VALUEINCR[VALUEINCR_up_outliers]
+IPLDATA4$VALUEINCR[VALUEINCR_low_outliers]
+
+# No Outliers Found
+
+
+
+################################################################################
+###########               Impute outliers                     ################
+
+
+# Function
+# This is a user-defined function, that will appear in our environment for our use
+# It will cap outliers. 
+
+cap <- function(x){
+  quantiles <- quantile( x, c(0.05, 0.25, 0.75, 0.95 ) , na.rm = TRUE)
+  x[ x < quantiles[2] - 1.5 * IQR(x, na.rm = TRUE) ] <- quantiles[1]
+  x[ x > quantiles[3] + 1.5 * IQR(x, na.rm = TRUE) ] <- quantiles[4]
+  x
+}
+
+
+
+################## MATCHPLAYED
+MATCHPLAYED_cap <- as.data.frame(sapply(IPLDATA4$MATCHPLAYED, FUN = cap))
+
+summary(IPLDATA4$MATCHPLAYED)
+summary(MATCHPLAYED_cap)
+IPLDATA4$MATCHPLAYED[MATCHPLAYED_up_outliers] <- median(IPLDATA4$MATCHPLAYED)
+IPLDATA4$MATCHPLAYED
+#Impute with median
+
+
+################## NOTOUTS
+NOTOUTS_cap <- as.data.frame(sapply(IPLDATA4$NOTOUTS, FUN = cap))
+
+summary(IPLDATA4$NOTOUTS)
+summary(NOTOUTS_cap)
+IPLDATA4$NOTOUTS[NOTOUTS_up_outliers] <- median(IPLDATA4$NOTOUTS)
+IPLDATA4$NOTOUTS
+
+#Impute with median
+
+
+
+
+################## X4S
+X4S_cap <- as.data.frame(sapply(IPLDATA4$X4S, FUN = cap))
+
+summary(IPLDATA4$X4S)
+summary(X4S_cap)
+IPLDATA4$X4S[X4S_up_outliers] <- median(IPLDATA4$X4S)
+IPLDATA4$X4S
+
+#Impute with median
+
+
+################## X6S
+X6S_cap <- as.data.frame(sapply(IPLDATA4$X6S, FUN = cap))
+
+summary(IPLDATA4$X6S)
+summary(X6S_cap)
+IPLDATA4$X6S[X6S_up_outliers] <- median(IPLDATA4$X6S)
+IPLDATA4$X6S
+
+#Impute with median
+
+
+
+
+################## CATCHESTAKEN
+CATCHESTAKEN_cap <- as.data.frame(sapply(IPLDATA4$CATCHESTAKEN, FUN = cap))
+
+summary(IPLDATA4$CATCHESTAKEN)
+summary(CATCHESTAKEN_cap)
+IPLDATA4$CATCHESTAKEN[CATCHESTAKEN_up_outliers] <- median(IPLDATA4$CATCHESTAKEN)
+IPLDATA4$CATCHESTAKEN
+
+#Impute with median
+
+
+
+################## WICKETS
+WICKETS_cap <- as.data.frame(sapply(IPLDATA4$WICKETS, FUN = cap))
+
+summary(IPLDATA4$WICKETS)
+summary(WICKETS_cap)
+IPLDATA4$WICKETS[WICKETS_up_outliers] <- median(IPLDATA4$WICKETS)
+IPLDATA4$WICKETS
+
+#Impute with median
+
+
+
+################## STRIKERATE
+STRIKERATE_cap <- as.data.frame(sapply(IPLDATA4$STRIKERATE, FUN = cap))
+
+summary(IPLDATA4$STRIKERATE)
+summary(STRIKERATE_cap)
+IPLDATA4$STRIKERATE[STRIKERATE_up_outliers] <- mean(IPLDATA4$STRIKERATE)
+IPLDATA4$STRIKERATE
+
+#Impute with mean
+
+
+
+################## ECONOMYRATE
+ECONOMYRATE_cap <- as.data.frame(sapply(IPLDATA4$ECONOMYRATE, FUN = cap))
+
+summary(IPLDATA4$ECONOMYRATE)
+summary(ECONOMYRATE_cap)
+IPLDATA4$ECONOMYRATE[ECONOMYRATE_up_outliers] <- mean(IPLDATA4$ECONOMYRATE)
+IPLDATA4$ECONOMYRATE
+
+#Impute with mean
+
+
+
+
+```
+### Multivariate Outliers  
+
+In searching for multivariate outliers we apply the MVN method accross the numeric variables in **IPLDATA4**.  
+
+
+We test the following combinations of variables and detect the following outliers:  
+
+* **Matches Played vs Sold Price** 44 outliers found.
+* **Batting Statistics** - consisting of *NOTOUTS*, *BATTINGS.R*, *X4S*, *X6S*, we detect 70 outliers
+* **ECONOMYRATE and STRIKERATE** - 77 outliers detected
+* **NOTOUTS and RUNSSCORED** - 60 outliers detected
+* **WICKETS and STUMPINGSMADE** - error as *STUMPINGSMADE has IQR less than 0. Computer says no hahaha.
+* **MATCHPLAYED and NOTOUTS** - 56 outliers detected.
+* **IPLDATA$ NUMERIC values** - Consists of *MATCHPLAYED*, *NOTOUTS*, *RUNSSCORED*, *BATTINGAVG*, *BATTINGS.R*, *X4S,X6S*, *CATCHESTAKEN*, *WICKETS*, *STRIKERATE*, *ECONOMYRATE*, *BASE.PRICE*, *VALUEINCR*. 78 Outliers found.  
+
+Given the high number of outliers present accross the variables versus the observations in our dataset, it does not make sense to exclude them.   
+
+
+
+
+
+
+```{r echo=TRUE}
+
+######################## Multivariate Outliers  ################################
+
+#########                     MVN method                             ###########
+
+##  Matches Played vs Sold Price
+IPL4_sub1 <- IPLDATA4 %>% select(MATCHPLAYED, VALUEINCR) 
+
+results1 <- IPL4_sub1 %>% 
+  MVN::mvn(multivariateOutlierMethod = "quan", 
+           showOutliers = TRUE)
+
+results1$multivariateOutliers
+
+###############################################################################
+
+##  Batting Statistics - NOTOUTS, BATTINGS.R, X4S, X6S
+IPL4_sub2 <- IPLDATA4 %>% select(NOTOUTS, BATTINGS.R, X4S, X6S) 
+
+results2 <- IPL4_sub2 %>% 
+  MVN::mvn(multivariateOutlierMethod = "quan", 
+           showOutliers = TRUE)
+
+results2$multivariateOutliers
+
+
+###############################################################################
+
+##  ECONOMYRATE and STRIKERATE
+IPL4_sub3 <- IPLDATA4 %>% select(ECONOMYRATE, STRIKERATE) 
+
+results3 <- IPL4_sub3 %>% 
+  MVN::mvn(multivariateOutlierMethod = "quan", 
+           showOutliers = TRUE)
+
+results3$multivariateOutliers
+
+
+###############################################################################
+
+##  NOTOUTS and RUNSSCORED 
+IPL4_sub4 <- IPLDATA4 %>% select(NOTOUTS, RUNSSCORED) 
+
+results4 <- IPL4_sub4 %>% 
+  MVN::mvn(multivariateOutlierMethod = "quan", 
+           showOutliers = TRUE)
+
+results4$multivariateOutliers
+
+
+
+###############################################################################
+
+##  WICKETS and STUMPINGSMADE
+#IPL4_sub5 <- IPLDATA4 %>% select(STUMPINGSMADE, WICKETS) 
+
+#results5 <- IPL4_sub5 %>% 
+#  MVN::mvn(multivariateOutlierMethod = "quan", 
+#           showOutliers = TRUE)
+
+#results5$multivariateOutliers
+
+
+
+###############################################################################
+
+##  MATCHPLAYED and NOTOUTS 
+IPL4_sub6 <- IPLDATA4 %>% select(MATCHPLAYED, NOTOUTS) 
+
+results6 <- IPL4_sub6 %>% 
+  MVN::mvn(multivariateOutlierMethod = "quan", 
+           showOutliers = TRUE)
+
+results6$multivariateOutliers
+
+
+
+
+###############################################################################
+
+##  IPLDATA4 - Numeric Values
+IPL4_sub7 <- IPLDATA4 %>% select(MATCHPLAYED, NOTOUTS, RUNSSCORED, BATTINGAVG, BATTINGS.R, X4S,X6S, CATCHESTAKEN, WICKETS, STRIKERATE, ECONOMYRATE, BASE.PRICE, VALUEINCR ) 
+
+results7 <- IPL4_sub7 %>% 
+  MVN::mvn(multivariateOutlierMethod = "quan", 
+           showOutliers = TRUE)
+
+results7$multivariateOutliers
+
+
+
+################################################################################
+#IPL4_sub1_outliers <- IPL4_sub1[c(as.numeric(results1$multivariateOutliers[["Observation"]])), ]
+
+# Break it down: 
+#results1$multivariateOutliers[["Observation"]]
+# This part returns the observation numbers of the outliers. 
+
+#as.numeric(results1$multivariateOutliers[["Observation"]])
+# This part is taking those observation numbers and converting from character to numeric
+# Then we subset the dataset by including rows that are in this vector of observation numbers 
+
+
+#IPL4_clean <- IPL4_sub1[-c(as.numeric(results1$multivariateOutliers[["Observation"]])), ]
+# What is the difference between iris_outliers and iris_clean? 
+# We've used "-c()" to remove those observations in iris_clean, whereas in 
+# iris_outliers, we kept only those observations by using "c()" 
+
+#dim(IPL4_clean)
+#dim(IPL4_sub1_outliers)
+#dim(IPL4_sub1)
+
+
+```
+
+
+##	Transform  
+For data transformation we have chosen the **RUNSSCORED** for further analysis. Looking at the histogram below, we can see that the distribution for **RUNSSCORED** data is highly skewed to the right.  
+
+A more symmetrical distribution makes the data easier to work with for use with statistical analysis techniques such as parametric and linear regression, so in order to correct the skewedness, we will apply a number of transformation techniques.
+
+Applying a **log10** transformation, we can see that the distribution now looks more symmetrical.  
+
+We also applied a Square Root transformation, however when we examin the histograph, we can see that the distribution is still skewed to the right.  
+
+**log10** transformation works best in this instance as the range in the **RUNSSCORED** variable differs by several orders of magnitude. The transformation makes the data easier to understand, and by converting the data to a normal distribution, makes it easier to work with for linear regression and parametric analysis techniques.
+
+
+
+
+
+
+
+
+```{r echo=TRUE}
+
+# This is a chunk where you apply an appropriate transformation to at least one of the variables
+
+## Histogram of Runs Scored:
+hist(IPLDATA4$RUNSSCORED, breaks = 10,
+main = "Histogram of Runs Scored",
+xlab = "Runs Scored")
+
+# Applying log Transformation:
+log_RunsScored <- log10(IPLDATA4$RUNSSCORED)
+
+# Histogram of Log10 Transformed Trip Distance
+hist(log_RunsScored, breaks = 10,
+main = "Histogram of base 10 Runs Scored",
+xlab = "Base 10 log of Runs Scored")
+
+
+# Applying Square Root Transformation
+sqrt_RunsScored <- sqrt(IPLDATA4$RUNSSCORED)
+# Histogram of SQRT Transformed Trip Distance
+hist(sqrt_RunsScored, breaks = 10,
+main = "Histogram of the Square Root of Runs Scored",
+xlab = "Square Root of Runs Scored")  
+
+
+
+
+
+
+```
+
+
+## Reflective journal  
+
+**Initial Plan:-**
+Starting the assignment, it was really a struggle to find a good data set that met the assignment requirements. I searched data.gov.au, figshare.com and sites such as kaggle for days until I found a couple of data sets I was happy with.  
+
+Once I found the datasets I was happy with, I felt that I was applying the skills from assignment 2, except that this time there was the challenge of working with more realistic and messy data.  
+
+Looking at the Player and Auction dataset, I was hoping to combine them in order to create a dataset where we might be able to see the relationship between a players stats and how this may reflect in their auction price.  
+
+**Key Questions:-**
+My plan was to combine the Player and Auction data sets as I thought it would be interesting to see how player stats could inform their bid price.  
+
+
+**Difficulties Encountered:-**
+My data set contained many variables, and I feel that I could have achieved more with them had I had more time, I would be able to do more with outliers in the variables I didn't cover. There was a lot difficulties around NA figures due to the amount and uncertainty of how I should treat them. Initially my data set had a lot of blank spaces that I initially had to replace with NAs before I can impute them with another value.  
+
+For example with the following code:  
+*levels(IPLDATA2$COUNTRY)*
+*levels(IPLDATA2$COUNTRY) <- c(levels(IPLDATA2$COUNTRY), "NA")*
+*IPLDATA2$COUNTRY[IPLDATA2$COUNTRY == ""] <- 'NA'*  
+
+When I scanned for NAs, the NAs would not appear in columns like *Country* or *Sport*  and when I later tried to replace the NAs in the the columns median mode or an "Unknown" value, I would get an error with factor levels, so I had to convert the variable back to a character datatype first to resolve it.  
+
+The data set was difficult because of the sheer amount of NAs. The data sets I had, particularly the Player dataset, had records full of NAs. I feel had I had more time, or maybe in a work environment we would be able to scrape the missing stats from online and incorporate it into our dataset.    
+
+**Solutions Used to Resolve Problems:-**
+As for solutions. When it came to imputing those categorical variables, I was able to resolve the issue by converting the variable back to a character to do the replace, then change back to a factor.  
+
+For the large amount of NA figures, even after the datasets were merged and the non-matching rows were dropped, I still had players with entire rows of NAs which defeated the intent of merging the datasets to begin with. I used the below code to drop variables present in the Player dataset unless a value was present in another row:  
+*IPLDATA3 <- IPLDATA2 %>% filter(!is.na(MATCHPLAYED) | !is.na(INNINGSBATTED) | !is.na(NOTOUTS) |  !is.na(RUNSSCORED) | !is.na(HIGHEST.RUNS.SCORED)* *|!is.na(X100S) | !is.na(X50S) | !is.na(X4S) | !is.na(X6S) | !is.na(BATTINGAVG) |!is.na(BATTINGS.R) | !is.na(CATCHESTAKEN) | !is.na(STUMPINGSMADE) | !is.na(DUCKS) | !is.na(RUNOUTS) | !is.na(INNINGSBOWLED |* *!is.na(OVERS) | !is.na(MAIDENS) | !is.na(RUNSCONCEDED) | !is.na(WICKETS) | !is.na(WICKETS.X3S) | !is.na(WICKETS.X5S) | !is.na(BOWLINGAVG) | !is.na(ECONOMYRATE) | !is.na(STRIKERATE)))*  
+
+This helped drop some columns and allowed me to impute the rest of the remaining variables.  
+
+**Insights Gained:-**
+Even though there were a lot of challenges with this assignment. Mainly with finding a data set and dealing how untidy it is, and the sheer amount of missing values. I also have some doubts in regards to how I handled multivariate outliers. I feel that in the end I was able to gain a better understanding and appreciation of the whole data wrangling process, and can use the skills and experiences gained to improve my approach to data wrangling in future. 
+
+
+
+## Presentation link  
+
+Include the link to your video walkthrough here. 
+
+https://www.loom.com/share/14a3c8924da6409dbdf2ed375c27018e  
+
+  
+  
+    
+  
+      
+## References  
+VINITSHAH0110, 2022, *IPL Auction 2022*, Kaggle, viewed 14 April 2022, 
+<https://www.kaggle.com/datasets/vinitshah0110/ipl-auction-2022>  
+
+
+Vora, S, 2022, *IPL 2022 Player Statistics*, Kaggle, viewed 14 April 2022, 
+<https://www.kaggle.com/datasets/vora1011/ipl-2022-player-statistics>  
+
+Cricket Mastery, 2022, *How Does the IPL Auction Work*, Cricket Mastery, viewed 14 April 2022,
+<https://cricketmastery.com/how-does-the-ipl-auction-work/>  
+
+Harris, M, 2022, *What is a Century in Cricket? – Records and the Most Centuries*, It's Only Cricket, viewed 14 April 2022, 
+<https://www.itsonlycricket.com/what-is-a-century-in-cricket>  
+
+Luke, 2022, *What Is A Four In Cricket? – All You Need To Know!*, Cricketers Hub, viewed 14 April 2022, 
+<https://cricketershub.com/what-is-a-four-in-cricket-all-you-need-to-know/>  
+
+
+Harris, M, 2022, *What is an Over in Cricket? – How Many Balls are in an Over?*, It's Only Cricket, viewed 14 April 2022, 
+<https://www.itsonlycricket.com/what-is-an-over-in-cricket>  
+
+Harris, M, 2022, *What is a Duck in Cricket Lingo: from Golden Duck to Platinum*, It's Only Cricket, viewed 14 April 2022,
+<https://www.itsonlycricket.com/duck-in-cricket>  
+
+Harris, M, 2022, *Maiden Over: Meaning of the Term and Most Maiden Overs in Cricket*, It's Only Cricket, viewed 14 April 2022,
+<https://www.itsonlycricket.com/maiden-over>  
+
+Wikipedia, 2022, *Economy rate*, Wikipedia, viewed 14 April 2022,
+<https://en.wikipedia.org/wiki/Economy_rate#:~:text=In%20cricket%2C%20a%20player's%20economy,better%20the%20bowler%20is%20performing.>  
+
+Wikipedia, 2022, *Crore*, Wikipedia, viewed 14 April 2022,
+<https://en.wikipedia.org/wiki/Crore>   
+
+Data Science Made Simple, 2022, *GET AGE FROM DATE OF BIRTH IN R*, Data Science Made Simple, viewed  22 April 2022, 
+<https://www.datasciencemadesimple.com/get-age-from-date-of-birth-in-r-2/#:~:text=Age%20is%20extracted%20from%20Date_of_birth,by%2052.25%2C%20as%20shown%20below.>   
+
+
+Stack Overflow
+zx8754, 2021, *Replace contents of factor column in R dataframe* Stack Overflow, viewed 22 April 2022, 
+<https://stackoverflow.com/questions/11810605/replace-contents-of-factor-column-in-r-dataframe>
+
+
+R for Data Science
+Wickham, H and Grolemund, G, 2016, *R for Data Science*, viewed 15 April 2022
+
+
+Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of
+Statistical Software, 40(3), 1-25. URL https://www.jstatsoft.org/v40/i03/.  
+
+Stefan Milton Bache and Hadley Wickham (2022). magrittr: A Forward-Pipe Operator for R. R package
+version 2.0.2. https://CRAN.R-project.org/package=magrittr  
+
+Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2022). dplyr: A Grammar of Data
+Manipulation. R package version 1.0.8. https://CRAN.R-project.org/package=dplyr  
+
+Hadley Wickham and Maximilian Girlich (2022). tidyr: Tidy Messy Data. R package version 1.2.0. https:
+//CRAN.R-project.org/package=tidyr  
+
+Lukasz Komsta (2022). outliers: Tests for Outliers. R package version 0.15. https://CRAN.R-project.org/
+package=outliers  
+
+Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686, https:
+//doi.org/10.21105/joss.01686  
+
+Mark van der Loo, Edwin de Jonge and Sander Scholtus (2015). deducorrect: Deductive Correction, Deductive Imputation, and Deterministic Correction. R package version 1.3.7. https://CRAN.R-project.org/
+package=deducorrect  
+
+Mark van der Loo and Edwin de Jonge (2021). deductive: Data Correction and Imputation Using Deductive
+Methods. R package version 1.0.0. https://CRAN.R-project.org/package=deductive  
+
+Mark P. J. van der Loo, Edwin de Jonge (2021). Data Validation Infrastructure for R. Journal of Statistical
+Software, 97(10), 1-31. doi:10.18637/jss.v097.i10  
+
+Frank E Harrell Jr (2021). Hmisc: Harrell Miscellaneous. R package version 4.6-0. https://CRAN.Rproject.org/package=Hmisc  
+
+Korkmaz S, Goksuluk D, Zararsiz G. MVN: An R Package for Assessing Multivariate Normality. The R
+Journal. 2014 6(2):151-162.  
+
+Hadley Wickham, Jim Hester and Jennifer Bryan (2022). readr: Read Rectangular Text Data. R package
+version 2.1.2. https://CRAN.R-project.org/package=readr  
+
+Philipp Schauberger and Alexander Walker (2021). openxlsx: Read, Write and Edit xlsx Files. R package
+version 4.2.5. https://CRAN.R-project.org/package=openxlsx  
+
+Adrian Dragulescu and Cole Arendt (2020). xlsx: Read, Write, Format Excel 2007 and Excel
+97/2000/XP/2003 Files. R package version 0.6.5. https://CRAN.R-project.org/package=xlsx  
+
+Yihui Xie (2022). tinytex: Helper Functions to Install and Maintain TeX Live, and Compile LaTeX Documents. R package version 0.38.  
+
+Yihui Xie (2019) TinyTeX: A lightweight, cross-platform, and easy-to-maintain LaTeX distribution based
+on TeX Live. TUGboat 40 (1): 30–32. https://tug.org/TUGboat/Contents/contents40-1.html  
+
